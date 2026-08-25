@@ -1,12 +1,5 @@
 /**
- * ACTIVIDAD 6 - probar controladores sin levantar el servidor
- *
- * Un controlador es solo una funcion que recibe (req, res).
- * Entonces le inventamos un req y un res y listo. No hace falta Express,
- * ni un puerto, ni Postman.
- *
- * El truco del res: cada metodo devuelve el mismo objeto res, para que
- * res.status(200).json({...}) funcione encadenado.
+ * SOLUCION - Actividad 6
  */
 
 const librosRepo = require('../src/repositorios/libros.repositorio');
@@ -17,7 +10,6 @@ const {
   eliminarLibro,
 } = require('../src/controladores/libros.controlador');
 
-/** Crea un res falso que registra todo lo que le hacen */
 function crearRes() {
   const res = {};
   res.status = jest.fn().mockReturnValue(res);
@@ -26,21 +18,21 @@ function crearRes() {
   return res;
 }
 
-describe('listarLibros', () => {
-  beforeEach(() => {
-    librosRepo.reiniciar([
-      {
-        id: 1,
-        titulo: 'Rayuela',
-        autor: 'Julio Cortazar',
-        isbn: '9788437604572',
-        copiasTotales: 2,
-        copiasDisponibles: 2,
-      },
-    ]);
-  });
+const LIBRO_SEMILLA = {
+  id: 1,
+  titulo: 'Rayuela',
+  autor: 'Julio Cortazar',
+  isbn: '9788437604572',
+  copiasTotales: 2,
+  copiasDisponibles: 2,
+};
 
-  // ---- EJEMPLO RESUELTO ----
+// Antes de CADA prueba dejamos el repositorio con un solo libro conocido
+beforeEach(() => {
+  librosRepo.reiniciar([LIBRO_SEMILLA]);
+});
+
+describe('listarLibros', () => {
   test('responde 200 con la lista de libros', () => {
     const req = {};
     const res = crearRes();
@@ -55,19 +47,126 @@ describe('listarLibros', () => {
 });
 
 describe('obtenerLibro', () => {
-  test.todo('responde 200 y el libro cuando el id existe');
-  test.todo('responde 404 con LIBRO_NO_ENCONTRADO cuando el id no existe');
-  test.todo('responde 400 con ID_INVALIDO cuando el id no es un numero');
+  test('responde 200 y el libro cuando el id existe', () => {
+    const req = { params: { id: '1' } };
+    const res = crearRes();
+
+    obtenerLibro(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 1, titulo: 'Rayuela' })
+    );
+  });
+
+  test('responde 404 con LIBRO_NO_ENCONTRADO cuando el id no existe', () => {
+    const req = { params: { id: '999' } };
+    const res = crearRes();
+
+    obtenerLibro(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: 'LIBRO_NO_ENCONTRADO' });
+  });
+
+  test('responde 400 con ID_INVALIDO cuando el id no es un numero', () => {
+    const req = { params: { id: 'abc' } };
+    const res = crearRes();
+
+    obtenerLibro(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: 'ID_INVALIDO' });
+  });
 });
 
 describe('crearLibro', () => {
-  test.todo('responde 201 con el libro creado cuando los datos son validos');
-  test.todo('responde 400 y la lista de errores cuando los datos son invalidos');
-  test.todo('responde 409 con ISBN_DUPLICADO si el ISBN ya existe');
-  test.todo('no guarda nada en el repositorio cuando los datos son invalidos');
+  test('responde 201 con el libro creado cuando los datos son validos', () => {
+    const req = {
+      body: {
+        titulo: 'El Aleph',
+        autor: 'Jorge Luis Borges',
+        isbn: '9788499089515',
+        copiasTotales: 1,
+      },
+    };
+    const res = crearRes();
+
+    crearLibro(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        titulo: 'El Aleph',
+        copiasDisponibles: 1,
+      })
+    );
+  });
+
+  test('responde 400 y la lista de errores cuando los datos son invalidos', () => {
+    const req = { body: { titulo: '', autor: '', isbn: 'x', copiasTotales: 0 } };
+    const res = crearRes();
+
+    crearLibro(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      errores: [
+        'TITULO_INVALIDO',
+        'AUTOR_INVALIDO',
+        'ISBN_INVALIDO',
+        'COPIAS_INVALIDAS',
+      ],
+    });
+  });
+
+  test('responde 409 con ISBN_DUPLICADO si el ISBN ya existe', () => {
+    const req = {
+      body: {
+        titulo: 'Rayuela (otra edicion)',
+        autor: 'Julio Cortazar',
+        isbn: '9788437604572', // el mismo de la semilla
+        copiasTotales: 1,
+      },
+    };
+    const res = crearRes();
+
+    crearLibro(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({ error: 'ISBN_DUPLICADO' });
+  });
+
+  test('no guarda nada en el repositorio cuando los datos son invalidos', () => {
+    const req = { body: {} };
+    const res = crearRes();
+
+    crearLibro(req, res);
+
+    // Sigue habiendo un solo libro: el de la semilla
+    expect(librosRepo.listar()).toHaveLength(1);
+  });
 });
 
 describe('eliminarLibro', () => {
-  test.todo('responde 204 sin cuerpo cuando el libro existia');
-  test.todo('responde 404 cuando el libro no existia');
+  test('responde 204 sin cuerpo cuando el libro existia', () => {
+    const req = { params: { id: '1' } };
+    const res = crearRes();
+
+    eliminarLibro(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(204);
+    expect(res.send).toHaveBeenCalled();
+    expect(res.json).not.toHaveBeenCalled();
+  });
+
+  test('responde 404 cuando el libro no existia', () => {
+    const req = { params: { id: '999' } };
+    const res = crearRes();
+
+    eliminarLibro(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: 'LIBRO_NO_ENCONTRADO' });
+  });
 });
