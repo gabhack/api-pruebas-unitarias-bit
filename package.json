@@ -1,0 +1,27 @@
+{
+  "name": "api-biblioteca-bit",
+  "version": "1.0.0",
+  "description": "API de biblioteca para practicar pruebas unitarias con Jest - BIT+ Full Stack",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cobertura": "jest --coverage"
+  },
+  "keywords": [
+    "jest",
+    "testing",
+    "express",
+    "bit"
+  ],
+  "author": "BIT+ Full Stack",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
